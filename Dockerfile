@@ -6,5 +6,5 @@ RUN apk update && \
 
 WORKDIR /
 COPY . .
-RUN npm install
-RUN npm run build
+RUN yarn install
+RUN yarn run build
