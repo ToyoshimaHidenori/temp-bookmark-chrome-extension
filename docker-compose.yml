@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  node-build:
+    build:
+      context: .
+      dockerfile: .
+    command: npm run watch
+    volumes:
+      - ./dist:/dist
+      - ./src:/src
+      - ./public:/public

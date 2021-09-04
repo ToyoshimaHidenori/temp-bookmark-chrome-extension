@@ -20,6 +20,10 @@ module.exports = {
             chunks: "initial",
         },
     },
+    watchOptions: {
+        aggregateTimeout: 200,
+        poll: 1000
+    },
     module: {
         rules: [
             {
