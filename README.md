@@ -1,4 +1,4 @@
-# bookmark chrome extension
+# bookmark Chrome extension
 
 ## Project Structure
 
