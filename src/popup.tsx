@@ -1,29 +1,59 @@
 import React, {useEffect, useState} from "react";
 import ReactDOM from "react-dom";
 import {Bookmark} from './Contract';
+import styled from 'styled-components';
+
+const Button = styled.button`
+  color: #005bf8;
+  font-size: 1em;
+  margin: 1em;
+  padding: 0.25em 1em;
+  background-color: #ffffff;
+  border: 2px solid #0074ff;
+  border-radius: 3px;
+  &:hover {
+    color: #ffffff;
+    background-color: #0074ff;
+  } 
+`;
 
 const Popup = () => {
   const [currentURL, setCurrentURL] = useState<string>();
-  const [bookmarks, setBookmarks] = useState<Array<Bookmark>>([]);
-  const [archives, setArchives] = useState<Array<Bookmark>>([]);
+  const [bookmarks, setBookmarks] = useState<Array<Bookmark>>();
+  const [archives, setArchives] = useState<Array<Bookmark>>();
 
-  useEffect(() => {
-    chrome.browserAction.setBadgeText({ text: bookmarks?.length.toString() });
-  }, [bookmarks]);
+
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       setCurrentURL(tabs[0].url);
     });
     chrome.storage.sync.get(['bookmarks'], function(result) {
-        setBookmarks(result.bookmarks)
+        setBookmarks([...result.bookmarks])
         console.log('Value currently is ' + result.bookmarks);
     });
     chrome.storage.sync.get(['archives'], function(result) {
-        setBookmarks(result.archives)
+        setArchives([...result.archives])
         console.log('Value currently is ' + result.archives);
     });
   }, []);
+
+  useEffect(() => {
+      chrome.browserAction.setBadgeText({ text: bookmarks?.length.toString() });
+      if(bookmarks!==undefined){
+              chrome.storage.sync.set({"bookmarks": [...bookmarks]}, () =>{
+              console.log('sat bookmark' + [...bookmarks]);
+          })
+      }
+  }, [bookmarks]);
+
+  useEffect(() => {
+      if(archives!==undefined) {
+          chrome.storage.sync.set({"archives": [...archives]}, () => {
+              console.log('sat archives' + [...archives]);
+          })
+      }
+  }, [archives])
 
   // const getTitle = (url: string) => {
   //   new Promise(function (resolve, reject) {
@@ -54,10 +84,8 @@ const Popup = () => {
       chrome.tabs.query({ active: true, currentWindow: true },function(tabs) {
           const currentWebTitle: string = tabs[0].title || "No title";
           tmp_bookmarks.push({url:currentURL, date:currentDate.toString(), info:{title:currentWebTitle,},});
-          setBookmarks(tmp_bookmarks);
-          chrome.storage.sync.set({"bookmarks": tmp_bookmarks}, () =>{
-              console.log('added bookmark' + currentURL);
-          })
+          setBookmarks([...tmp_bookmarks]);
+          console.log("added")
       })
   }
     const archiveBookmark = (bookmark: Bookmark) => {
@@ -66,10 +94,7 @@ const Popup = () => {
             tmp_archives = archives.slice();
         }
         tmp_archives.push({url:bookmark.url, date:bookmark.date, info:{title:bookmark.info.title,},});
-        setArchives(tmp_archives);
-        chrome.storage.sync.set({"archives": tmp_archives}, () =>{
-            console.log('added archives' + currentURL);
-        })
+        setArchives([...tmp_archives]);
     }
 
   const changeBackground = () => {
@@ -97,14 +122,14 @@ const Popup = () => {
         <li>Current URL: {currentURL}</li>
         <li>Current Time: {new Date().toLocaleTimeString()}</li>
       </ul>
-        <button onClick={addBookmark}>add bookmark</button>
-        <button onClick={()=>setBookmarks([])}>clear all bookmark</button>
-        <button onClick={changeBackground}>change background</button>
+        <Button onClick={addBookmark}>add bookmark</Button>
+        <Button onClick={()=>setBookmarks([])}>clear all bookmark</Button>
+        <Button onClick={changeBackground}>change background</Button>
         <h2>Bookmarks</h2>
       {bookmarks && bookmarks.length != 0 &&
         bookmarks.map((bookmark, index) => (
             <div onClick={() => chrome.tabs.create({ url: bookmark.url})} key={index}><h3>{bookmark.info.title}</h3><p>{bookmark.url}</p><p>{bookmark.date}</p>
-                <button onClick={
+                <Button onClick={
                     (e) => {
                         e.stopPropagation()
                         archiveBookmark(bookmarks[index])
@@ -113,7 +138,7 @@ const Popup = () => {
                         setBookmarks(tmp_bookmarks);
                     }
                 }>
-                Archive</button></div>
+                Archive</Button></div>
         ))
       }
 
@@ -121,7 +146,7 @@ const Popup = () => {
         {archives && archives.length != 0 &&
         archives.map((bookmark, index) => (
             <div onClick={() => chrome.tabs.create({ url: bookmark.url})} key={index}><h3>{bookmark.info.title}</h3><p>{bookmark.url}</p><p>{bookmark.date}</p>
-                <button onClick={
+                <Button onClick={
                     (e) => {
                         e.stopPropagation()
                         let tmp_archives:Array<Bookmark> = [...archives];
@@ -129,7 +154,7 @@ const Popup = () => {
                         setArchives(tmp_archives);
                     }
                 }>
-                    Remove Completely</button></div>
+                    Remove Completely</Button></div>
         ))
         }
     </>
