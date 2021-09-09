@@ -5,6 +5,7 @@ import {Bookmark} from './Contract';
 const Popup = () => {
   const [currentURL, setCurrentURL] = useState<string>();
   const [bookmarks, setBookmarks] = useState<Array<Bookmark>>([]);
+  const [archives, setArchives] = useState<Array<Bookmark>>([]);
 
   useEffect(() => {
     chrome.browserAction.setBadgeText({ text: bookmarks?.length.toString() });
@@ -17,6 +18,10 @@ const Popup = () => {
     chrome.storage.sync.get(['bookmarks'], function(result) {
         setBookmarks(result.bookmarks)
         console.log('Value currently is ' + result.bookmarks);
+    });
+    chrome.storage.sync.get(['archives'], function(result) {
+        setBookmarks(result.archives)
+        console.log('Value currently is ' + result.archives);
     });
   }, []);
 
@@ -55,6 +60,17 @@ const Popup = () => {
           })
       })
   }
+    const archiveBookmark = (bookmark: Bookmark) => {
+        let tmp_archives:Array<Bookmark> = [];
+        if(archives){
+            tmp_archives = archives.slice();
+        }
+        tmp_archives.push({url:bookmark.url, date:bookmark.date, info:{title:bookmark.info.title,},});
+        setArchives(tmp_archives);
+        chrome.storage.sync.set({"archives": tmp_archives}, () =>{
+            console.log('added archives' + currentURL);
+        })
+    }
 
   const changeBackground = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -73,20 +89,49 @@ const Popup = () => {
     });
   };
 
+
+
   return (
     <>
       <ul style={{ minWidth: "700px" }}>
         <li>Current URL: {currentURL}</li>
         <li>Current Time: {new Date().toLocaleTimeString()}</li>
       </ul>
-        {bookmarks && bookmarks.length != 0 &&
-            bookmarks.map((bookmark, index) => (
-                <button onClick={() => chrome.tabs.create({ url: bookmark.url})} key={index}><p>{bookmark.url}</p><p>title:{bookmark.info.title}</p><p>{bookmark.date}</p></button>
-            ))
-        }
         <button onClick={addBookmark}>add bookmark</button>
         <button onClick={()=>setBookmarks([])}>clear all bookmark</button>
-      <button onClick={changeBackground}>change background</button>
+        <button onClick={changeBackground}>change background</button>
+        <h2>Bookmarks</h2>
+      {bookmarks && bookmarks.length != 0 &&
+        bookmarks.map((bookmark, index) => (
+            <div onClick={() => chrome.tabs.create({ url: bookmark.url})} key={index}><h3>{bookmark.info.title}</h3><p>{bookmark.url}</p><p>{bookmark.date}</p>
+                <button onClick={
+                    (e) => {
+                        e.stopPropagation()
+                        archiveBookmark(bookmarks[index])
+                        let tmp_bookmarks:Array<Bookmark> = [...bookmarks];
+                        tmp_bookmarks.splice(index, 1);
+                        setBookmarks(tmp_bookmarks);
+                    }
+                }>
+                Archive</button></div>
+        ))
+      }
+
+        <h2>Archives</h2>
+        {archives && archives.length != 0 &&
+        archives.map((bookmark, index) => (
+            <div onClick={() => chrome.tabs.create({ url: bookmark.url})} key={index}><h3>{bookmark.info.title}</h3><p>{bookmark.url}</p><p>{bookmark.date}</p>
+                <button onClick={
+                    (e) => {
+                        e.stopPropagation()
+                        let tmp_archives:Array<Bookmark> = [...archives];
+                        tmp_archives.splice(index, 1);
+                        setArchives(tmp_archives);
+                    }
+                }>
+                    Remove Completely</button></div>
+        ))
+        }
     </>
   );
 };
