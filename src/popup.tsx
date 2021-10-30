@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import ReactDOM from "react-dom";
 import {Bookmark} from './Contract';
 import styled from 'styled-components';
+import * as events from "events";
 
 const Button = styled.button`
   color: #005bf8;
@@ -17,12 +18,53 @@ const Button = styled.button`
   } 
 `;
 
+type Props = {
+    bookmark: Bookmark;
+    archive?: any;
+    remove?: any;
+    bookmarkLink: any;
+}
+
+const Card: React.FC<Props> = ({bookmark, archive, bookmarkLink}) => {
+    return (
+        <StyledCard onClick={bookmarkLink}>
+            <h3>{bookmark.info.title}</h3>
+            <div>{bookmark.url}</div>
+            <div>{bookmark.date}</div>
+            <Button onClick={archive}>Archive</Button>
+        </StyledCard>
+    )
+}
+
+const ArchivedCard: React.FC<Props> = ({bookmark, remove, bookmarkLink}) => {
+    return (
+        <StyledCard onClick={bookmarkLink}>
+            <h3>{bookmark.info.title}</h3>
+            <div>{bookmark.url}</div>
+            <div>{bookmark.date}</div>
+            <Button onClick={remove}>remove completely</Button>
+        </StyledCard>
+    )
+}
+
+const StyledCard = styled.div`
+  color: #00368f;
+  font-size: 1em;
+  margin: 1em;
+  padding: 0.25em 1em;
+  background-color: #ffffff;
+  border: 2px solid #99a6cb;
+  border-radius: 1em;
+  &:hover {
+    color: #00368f;
+    background-color: #d6e7ff;
+  }
+`
+
 const Popup = () => {
   const [currentURL, setCurrentURL] = useState<string>();
   const [bookmarks, setBookmarks] = useState<Array<Bookmark>>();
   const [archives, setArchives] = useState<Array<Bookmark>>();
-
-
 
   useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -70,6 +112,21 @@ const Popup = () => {
   //       xhr.send();
   //   })
   // }
+
+    const archiveBookmarkFromList = (e:any, index:number, bookmarks:Bookmark[]) => {
+        e.stopPropagation()
+        archiveBookmark(bookmarks[index])
+        let tmp_bookmarks:Array<Bookmark> = [...bookmarks];
+        tmp_bookmarks.splice(index, 1);
+        setBookmarks(tmp_bookmarks);
+    }
+
+    const removeFromArchive = (e:any, index:number, archives:Bookmark[]) => {
+            e.stopPropagation()
+            let tmp_archives:Array<Bookmark> = [...archives];
+            tmp_archives.splice(index, 1);
+            setArchives(tmp_archives);
+    }
 
   const addBookmark = () => {
       if(currentURL===undefined){
@@ -124,37 +181,17 @@ const Popup = () => {
       </ul>
         <Button onClick={addBookmark}>add bookmark</Button>
         <Button onClick={()=>setBookmarks([])}>clear all bookmark</Button>
-        <Button onClick={changeBackground}>change background</Button>
         <h2>Bookmarks</h2>
       {bookmarks && bookmarks.length != 0 &&
         bookmarks.map((bookmark, index) => (
-            <div onClick={() => chrome.tabs.create({ url: bookmark.url})} key={index}><h3>{bookmark.info.title}</h3><p>{bookmark.url}</p><p>{bookmark.date}</p>
-                <Button onClick={
-                    (e) => {
-                        e.stopPropagation()
-                        archiveBookmark(bookmarks[index])
-                        let tmp_bookmarks:Array<Bookmark> = [...bookmarks];
-                        tmp_bookmarks.splice(index, 1);
-                        setBookmarks(tmp_bookmarks);
-                    }
-                }>
-                Archive</Button></div>
+            <Card bookmarkLink={() => chrome.tabs.create({ url: bookmark.url})} archive={(e:any) => {archiveBookmarkFromList(e, index, bookmarks)}} bookmark={bookmark} key={index}/>
         ))
       }
 
         <h2>Archives</h2>
         {archives && archives.length != 0 &&
         archives.map((bookmark, index) => (
-            <div onClick={() => chrome.tabs.create({ url: bookmark.url})} key={index}><h3>{bookmark.info.title}</h3><p>{bookmark.url}</p><p>{bookmark.date}</p>
-                <Button onClick={
-                    (e) => {
-                        e.stopPropagation()
-                        let tmp_archives:Array<Bookmark> = [...archives];
-                        tmp_archives.splice(index, 1);
-                        setArchives(tmp_archives);
-                    }
-                }>
-                    Remove Completely</Button></div>
+            <ArchivedCard bookmarkLink={() => chrome.tabs.create({ url: bookmark.url})} remove={(e:any) => {removeFromArchive(e, index, archives)}} bookmark={bookmark} key={index}/>
         ))
         }
     </>
